@@ -16,7 +16,7 @@ import asyncio
 import wiringpi as gpio
 
 from shift_register import shiftRegister
-from projects.rocketLab.packet_sniffer_async import packetSniffer
+from rocketLab.packet_sniffer import packetSniffer
 
 #      IDX |  0    1    2    3    4    5    6    7    8    9   10   11   12
 #     PHYS |  6    7    8   15   16   29   30   31   32   33   35   37   39
