@@ -9,23 +9,18 @@
 
 import logging
 import asyncio
-import queue
 from scapy.all import *
 
 class packetSniffer:
-    def __init__(self, sourceIP, destinationIP, destinationPort, layer):
+    def __init__(self, sourceIP, destinationIP, destinationPort):
         self.logger = logging.getLogger('fodo')
         self.srcIP = sourceIP
         self.destIP = destinationIP
         self.destPort = destinationPort
-        self.layer = layer
         
         self.qRecv = asyncio.Queue()
         self.qXmit = asyncio.Queue()
+        self.startup()
 
-    async def start(self):
-        sniff(filter=f"src host {self.srcIP} and port {self.destPort} and {self.layer}",
-              prn=lambda packet: self.queuePacketLoad(packet.load))
-        
-    def queuePacketLoad(self, pktLoad):
-        self.qRecv.put(pktLoad)
+    def startup(self):
+        pass

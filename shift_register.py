@@ -21,36 +21,43 @@ INPUT = 0
 OUTPUT = 1
 
 class shiftRegister:
-    def __init__(self, id, inputPin, clockPin, clearPin, 
-                 outputEnablePin, order, clockTime=0):
-        self.id = id
-        self.inpPin = inputPin
-        self.clkPin = clockPin
-        self.clrPin = clearPin
-        self.oEnPin = outputEnablePin
+    def __init__(self, qRecv, inputPin, clockPin, latchPin, clearPin, 
+                 outEnPin, order, clockTime=0):
+        
+        self.qRecv = qRecv
+        self.inputPin = inputPin
+        self.clockPin = clockPin
+        self.latchPin = latchPin
+        self.clearPin = clearPin
+        self.outEnPin = outEnPin
         self.order = order
-        self.clkTime = clockTime
+        self.clockTime = clockTime
 
         gpio.wiringPiSetupGpio()
         self.setupShiftPins()
         self.clearData()
 
     def tick(self):
-        gpio.digitalWrite(self.clkPin, HIGH)
-        gpio.delay(self.clkTime)
-        gpio.digitalWrite(self.clkPin, LOW)
-        gpio.delay(self.clkTime)
+        gpio.digitalWrite(self.clockPin, HIGH)
+        gpio.delay(self.clockTime)
+        gpio.digitalWrite(self.clockPin, LOW)
+        gpio.delay(self.clockTime)
+
+    def setPinMode(self, pin, mode):
+        gpio.pinMode(pin, mode)
 
     def setupShiftPins(self):
-        gpio.pinMode(self.inpPin, OUTPUT)
-        gpio.pinMode(self.clkPin, OUTPUT)
-        gpio.pinMode(self.clrPin, OUTPUT)
-        gpio.pinMode(self.oEnPin, OUTPUT)
+
+
+        gpio.pinMode(self.inputPin, OUTPUT)
+        gpio.pinMode(self.clockPin, OUTPUT)
+        gpio.pinMode(self.clearPin, OUTPUT)
+        gpio.pinMode(self.outEnPin, OUTPUT)
 
     def setData(self, data):
-        gpio.shiftOut(self.inpPin, self.clkPin, self.order, data)
+        gpio.shiftOut(self.inputPin, self.clockPin, self.order, data)
 
     def clearData(self):
-        gpio.digitalWrite(self.clrPin, LOW)
+        gpio.digitalWrite(self.clearPin, LOW)
         self.tick()
-        gpio.digitalWrite(self.clrPin, HIGH)
+        gpio.digitalWrite(self.clearPin, HIGH)

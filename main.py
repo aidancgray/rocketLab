@@ -16,6 +16,7 @@ import asyncio
 import wiringpi as gpio
 
 from shift_register import shiftRegister
+from projects.rocketLab.packet_sniffer_async import packetSniffer
 
 #      IDX |  0    1    2    3    4    5    6    7    8    9   10   11   12
 #     PHYS |  6    7    8   15   16   29   30   31   32   33   35   37   39
@@ -23,11 +24,18 @@ PIN_LIST = [470, 471, 472, 506, 505, 423, 422, 425, 424, 507, 477, 421, 462]
 
 SHIFTREG_INPUT_PIN = PIN_LIST[0]
 SHIFTREG_CLOCK_PIN = PIN_LIST[1]
-SHIFTREG_CLEAR_PIN = PIN_LIST[2]
-SHIFTREG_OUTEN_PIN = PIN_LIST[3]
+SHIFTREG_LATCH_PIN = PIN_LIST[2]
+SHIFTREG_CLEAR_PIN = PIN_LIST[3]
+SHIFTREG_OUTEN_PIN = PIN_LIST[4]
 
-RIOH_CLOCK_PIN = PIN_LIST[4]
+RIO_CLOCK_PIN = PIN_LIST[5]
+RIO_INPUT_PIN = PIN_LIST[6]
 DELAY = 2000
+
+SOURCE_IP = '192.168.0.11'
+DESTINATION_IP = '192.168.0.100'
+DESTINATION_PORT = 9999
+NETWORK_LAYER = 'udp'
 
 def custom_except_hook(loop, context):
     if repr(context['exception']) == 'SystemExit()':
@@ -44,15 +52,22 @@ async def runFODO(opts):
     if opts.test:
         gpioTest()
         sys.exit()
+    
+    packSniff = packetSniffer(sourceIP=SOURCE_IP,
+                              destinationIP=DESTINATION_IP,
+                              destinationPort=DESTINATION_PORT,
+                              layer=NETWORK_LAYER
+                              )
 
-    # shiftReg = shiftRegister(id=0,
-    #                          inputPin=SHIFTREG_INPUT_PIN,
-    #                          clockPin=SHIFTREG_CLOCK_PIN,
-    #                          clearPin=SHIFTREG_CLEAR_PIN,
-    #                          outputEnablePin=SHIFTREG_OUTEN_PIN,
-    #                          order=gpio.LSBFIRST,
-    #                          clockTime=opts.tickRate
-    #                         )
+    shiftReg = shiftRegister(packSniff.qRecv,
+                             inputPin=SHIFTREG_INPUT_PIN,
+                             clockPin=SHIFTREG_CLOCK_PIN,
+                             latchPin=SHIFTREG_LATCH_PIN,
+                             clearPin=SHIFTREG_CLEAR_PIN,
+                             outEnPin=SHIFTREG_OUTEN_PIN,
+                             order=gpio.LSBFIRST,
+                             clockTime=opts.tickRate
+                            )
     
     await asyncio.gather()
 
