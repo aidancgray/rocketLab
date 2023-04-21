@@ -21,9 +21,9 @@ INPUT = 0
 OUTPUT = 1
 
 class shiftRegister:
-    def __init__(self, qRecv, inputPin, clockPin, latchPin, clearPin, 
+    def __init__(self, logger, qRecv, inputPin, clockPin, latchPin, clearPin, 
                  outEnPin, order, clockTime=0):
-        
+        self.logger = logger
         self.qRecv = qRecv
         self.inputPin = inputPin
         self.clockPin = clockPin

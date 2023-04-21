@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# main.py
+# main_async.py
 # 04/04/2023
 # Aidan Gray
 # aidan.gray@idg.jhu.edu
@@ -12,11 +12,11 @@ import sys
 import logging
 import argparse
 import shlex
+import asyncio
 import wiringpi as gpio
 
 from shift_register import shiftRegister
-from packet_analyzer import packetAnalyzer
-from packet_handler import packetHandler
+from projects.rocketLab.packet_analyzer import packetSniffer
 
 #      IDX |  0    1    2    3    4    5    6    7    8    9   10   11   12
 #     PHYS |  6    7    8   15   16   29   30   31   32   33   35   37   39
@@ -42,7 +42,7 @@ def custom_except_hook(loop, context):
     if repr(context['exception']) == 'SystemExit()':
         print('Exiting Program...')
 
-def runFODO(opts):
+async def runFODO(opts):
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S",
                         format = "%(asctime)s.%(msecs)03dZ %(name)-10s %(levelno)s %(filename)s:%(lineno)d %(message)s" )
     
@@ -53,8 +53,15 @@ def runFODO(opts):
     if opts.test:
         gpioTest()
         sys.exit()
+    
+    packSniff = packetSniffer(sourceIP=SOURCE_IP,
+                              sourcePort=SOURCE_PORT,
+                              destinationIP=DESTINATION_IP,
+                              destinationPort=DESTINATION_PORT,
+                              layer=NETWORK_LAYER
+                              )
 
-    shiftReg = shiftRegister(logger=logger,
+    shiftReg = shiftRegister(packSniff.qRecv,
                              inputPin=SHIFTREG_INPUT_PIN,
                              clockPin=SHIFTREG_CLOCK_PIN,
                              latchPin=SHIFTREG_LATCH_PIN,
@@ -64,20 +71,7 @@ def runFODO(opts):
                              clockTime=opts.tickRate
                             )
     
-    packetHandler = packetHandler(logger=logger,
-                                  customHandler=shiftReg
-                                  )
-    
-    packAnalyzer = packetAnalyzer(logger=logger,
-                                  sourceIP=SOURCE_IP,
-                                  sourcePort=SOURCE_PORT,
-                                  destinationIP=DESTINATION_IP,
-                                  destinationPort=DESTINATION_PORT,
-                                  layer=NETWORK_LAYER,
-                                  packetHandler=packetHandler
-                                  )
-    
-    
+    await asyncio.gather()
 
 def gpioTest():
     gpio.wiringPiSetupGpio()
@@ -122,8 +116,10 @@ def main(argv=None):
                         help='in milliseconds - clock tick rate')
 
     opts = parser.parse_args(argv)
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(custom_except_hook)
     try:
-        runFODO(opts)
+        loop.run_until_complete(runFODO(opts))
     except KeyboardInterrupt:
         print('Exiting Program...')
     
