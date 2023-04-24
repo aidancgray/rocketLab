@@ -13,6 +13,7 @@
 #   wiringpi.shiftOut(1, 2, 0, 123)
 ###############################################################################
 
+import logging
 import wiringpi as gpio
 
 LOW = 0
@@ -21,10 +22,9 @@ INPUT = 0
 OUTPUT = 1
 
 class shiftRegister:
-    def __init__(self, logger, qRecv, inputPin, clockPin, latchPin, clearPin, 
+    def __init__(self, inputPin, clockPin, latchPin, clearPin, 
                  outEnPin, order, clockTime=0):
-        self.logger = logger
-        self.qRecv = qRecv
+        self.logger = logging.getLogger('fodo.shift_register')
         self.inputPin = inputPin
         self.clockPin = clockPin
         self.latchPin = latchPin
@@ -47,8 +47,6 @@ class shiftRegister:
         gpio.pinMode(pin, mode)
 
     def setupShiftPins(self):
-
-
         gpio.pinMode(self.inputPin, OUTPUT)
         gpio.pinMode(self.clockPin, OUTPUT)
         gpio.pinMode(self.clearPin, OUTPUT)

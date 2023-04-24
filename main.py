@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3.6
 # main.py
 # 04/04/2023
 # Aidan Gray
@@ -38,13 +38,13 @@ DESTINATION_IP = '172.16.1.112'
 DESTINATION_PORT = 200
 NETWORK_LAYER = 'udp'
 
-def custom_except_hook(loop, context):
-    if repr(context['exception']) == 'SystemExit()':
-        print('Exiting Program...')
+LOG_FORMAT = '%(asctime)s.%(msecs)03dZ %(name)-10s %(levelno)s %(filename)s:%(lineno)d %(message)s'
+#FILTER = f"src host {SOURCE_IP} and src port {SOURCE_PORT} and dst host {DESTINATION_IP} and dst port {DESTINATION_PORT} and {NETWORK_LAYER}"
+FILTER = f"{NETWORK_LAYER}"
 
 def runFODO(opts):
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S",
-                        format = "%(asctime)s.%(msecs)03dZ %(name)-10s %(levelno)s %(filename)s:%(lineno)d %(message)s" )
+                        format = LOG_FORMAT)
     
     logger = logging.getLogger('fodo')
     logger.setLevel(opts.logLevel)
@@ -54,8 +54,7 @@ def runFODO(opts):
         gpioTest()
         sys.exit()
 
-    shiftReg = shiftRegister(logger=logger,
-                             inputPin=SHIFTREG_INPUT_PIN,
+    shiftReg = shiftRegister(inputPin=SHIFTREG_INPUT_PIN,
                              clockPin=SHIFTREG_CLOCK_PIN,
                              latchPin=SHIFTREG_LATCH_PIN,
                              clearPin=SHIFTREG_CLEAR_PIN,
@@ -64,20 +63,17 @@ def runFODO(opts):
                              clockTime=opts.tickRate
                             )
     
-    packetHandler = packetHandler(logger=logger,
-                                  customHandler=shiftReg
-                                  )
+    pktHandler = packetHandler(customHandler=shiftReg)
     
-    packAnalyzer = packetAnalyzer(logger=logger,
-                                  sourceIP=SOURCE_IP,
+    pktAnalyzer = packetAnalyzer(sourceIP=SOURCE_IP,
                                   sourcePort=SOURCE_PORT,
                                   destinationIP=DESTINATION_IP,
                                   destinationPort=DESTINATION_PORT,
                                   layer=NETWORK_LAYER,
-                                  packetHandler=packetHandler
+                                  packetHandler=pktHandler
                                   )
-    
-    
+
+    pktAnalyzer.start(FILTER)
 
 def gpioTest():
     gpio.wiringPiSetupGpio()

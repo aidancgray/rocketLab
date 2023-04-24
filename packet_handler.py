@@ -11,9 +11,14 @@ import logging
 from scapy.all import *
 
 class packetHandler:
-    def __init__(self, logger, customHandler):
-        self.logger = logger
+    def __init__(self, customHandler):
+        self.logger = logging.getLogger('fodo.packet_handler')
         self.handler = customHandler
 
     def handle(self, pkt):
-        self.logger.info(f"PACKET: {pkt}")
+        self.logger.debug(f"PACKET: {pkt}")
+        self.handlePacketLoad(pkt.load)
+
+    def handlePacketLoad(self, pktLoad):
+        self.logger.debug(f"PACKET LOAD: {pktLoad}")
+        #self.handler.setData(pktLoad)
