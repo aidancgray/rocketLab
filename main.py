@@ -32,15 +32,15 @@ RIO_CLOCK_PIN = PIN_LIST[5]
 RIO_INPUT_PIN = PIN_LIST[6]
 DELAY = 2000
 
-SOURCE_IP = '172.16.1.112'
-SOURCE_PORT = 200
-DESTINATION_IP = '172.16.1.121'
-DESTINATION_PORT = 200
+SOURCE_IP = '172.16.0.171'
+SOURCE_PORT = 1024
+DESTINATION_IP = '172.16.1.112'
+DESTINATION_PORT = 1025
 NETWORK_LAYER = 'udp'
 
 LOG_FORMAT = '%(asctime)s.%(msecs)03dZ %(name)-10s %(levelno)s %(filename)s:%(lineno)d %(message)s'
-#FILTER = f"src host {SOURCE_IP} and src port {SOURCE_PORT} and dst host {DESTINATION_IP} and dst port {DESTINATION_PORT} and {NETWORK_LAYER}"
-FILTER = f"{NETWORK_LAYER}"
+FILTER = f"src host {SOURCE_IP} and src port {SOURCE_PORT} and dst host {DESTINATION_IP} and dst port {DESTINATION_PORT} and {NETWORK_LAYER}"
+#FILTER = f"{NETWORK_LAYER}"
 
 def runFODO(opts):
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S",
@@ -48,7 +48,7 @@ def runFODO(opts):
     
     logger = logging.getLogger('fodo')
     logger.setLevel(opts.logLevel)
-    logger.info('starting logging')
+    logger.info('~~~~~~starting log~~~~~~')
 
     if opts.test:
         gpioTest()
