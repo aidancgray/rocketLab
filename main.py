@@ -9,8 +9,11 @@
 ###############################################################################
 
 import sys
+import asyncio
+import netifaces
 import logging
 import argparse
+import configparser
 import shlex
 import wiringpi as gpio
 
@@ -28,23 +31,28 @@ SHIFTREG_LATCH_PIN = PIN_LIST[2]
 SHIFTREG_CLEAR_PIN = PIN_LIST[3]
 SHIFTREG_OUTEN_PIN = PIN_LIST[4]
 
-RIO_CLOCK_PIN = PIN_LIST[5]
-RIO_INPUT_PIN = PIN_LIST[6]
+SNAP_FIFO_FULL_PIN = PIN_LIST[5]
+SNAP_FIFO_EMPTY_PIN = PIN_LIST[6]
+SNAP_FIFO_READ_PIN = PIN_LIST[7]
+
 DELAY = 2000
 
-SOURCE_IP = '172.16.0.171'
-SOURCE_PORT = 1024
-DESTINATION_IP = '172.16.1.112'
-DESTINATION_PORT = 1025
-NETWORK_LAYER = 'udp'
+DEFAULT_CONFIG = {
+    "SOURCE_IP" : "172.16.1.112",
+    "SOURCE_PORT" : 1025,
+    "DESTINATION_IP" : "172.16.1.34",
+    "DESTINATION_PORT" : 1025,
+    "NETWORK_LAYER" : "udp"}
 
-LOG_FORMAT = '%(asctime)s.%(msecs)03dZ %(name)-10s %(levelno)s %(filename)s:%(lineno)d %(message)s'
-FILTER = f"src host {SOURCE_IP} and src port {SOURCE_PORT} and dst host {DESTINATION_IP} and dst port {DESTINATION_PORT} and {NETWORK_LAYER}"
-#FILTER = f"{NETWORK_LAYER}"
+def custom_except_hook(loop, context):
+    if repr(context['exception']) == 'SystemExit()':
+        print('Exiting Program...')
 
-def runFODO(opts):
+async def runFODO(opts):
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S",
-                        format = LOG_FORMAT)
+                        format = '%(asctime)s.%(msecs)03dZ ' \
+                                '%(name)-10s %(levelno)s ' \
+                                '%(filename)s:%(lineno)d %(message)s')
     
     logger = logging.getLogger('fodo')
     logger.setLevel(opts.logLevel)
@@ -53,6 +61,26 @@ def runFODO(opts):
     if opts.test:
         gpioTest()
         sys.exit()
+    
+    if opts.config == None:
+        config = DEFAULT_CONFIG
+    else:
+        config = parseConfigFile(opts.config)
+
+    srcIP = config["SOURCE_IP"]
+    srcPort = config["SOURCE_PORT"]
+    dstIP = config["DESTINATION_IP"]
+    dstPort = config["DESINATion_PORT"]
+    layer = config["NETWORK_LAYER"]
+
+    bpf_filter = f"src host {srcIP} and " \
+        f"src port {srcPort} and " \
+        f"dst host {dstIP} and " \
+        f"dst port {dstPort} and " \
+        f"{layer}"
+    
+    ip_address = netifaces.ifaddresses('eth0')[netifaces.AF_INET][0]['addr']
+    
 
     shiftReg = shiftRegister(inputPin=SHIFTREG_INPUT_PIN,
                              clockPin=SHIFTREG_CLOCK_PIN,
@@ -65,15 +93,15 @@ def runFODO(opts):
     
     pktHandler = packetHandler(customHandler=shiftReg)
     
-    pktAnalyzer = packetAnalyzer(sourceIP=SOURCE_IP,
-                                  sourcePort=SOURCE_PORT,
-                                  destinationIP=DESTINATION_IP,
-                                  destinationPort=DESTINATION_PORT,
-                                  layer=NETWORK_LAYER,
+    pktAnalyzer = packetAnalyzer(sourceIP=srcIP,
+                                  sourcePort=srcPort,
+                                  destinationIP=dstIP,
+                                  destinationPort=dstPort,
+                                  layer=layer,
                                   packetHandler=pktHandler
                                   )
 
-    pktAnalyzer.start(FILTER)
+    pktAnalyzer.start(bpf_filter)
 
 def gpioTest():
     gpio.wiringPiSetupGpio()
@@ -101,6 +129,18 @@ def gpioTest():
         gpio.digitalWrite(pin, gpio.LOW)
     print("---DONE---")
 
+def parseConfigFile(filename):
+    config = configparser.ConfigParser()
+    config.read(filename)
+    filterInfo = {}
+    filterInfo['SOURCE_IP'] = config['FILTER INFO']['SOURCE IP']
+    filterInfo['SOURCE_PORT'] = config['FILTER INFO']['SOURCE PORT']
+    filterInfo['DESTINATION_IP'] = config['FILTER INFO']['DESTINATION IP']
+    filterInfo['DESTINATION_PORT'] = config['FILTER INFO']['DESTINATION PORT']
+    filterInfo['NETWORK_LAYER'] = config['FILTER INFO']['NETWORK LAYER']
+
+    return filterInfo
+    
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
@@ -108,6 +148,8 @@ def main(argv=None):
         argv = shlex.split(argv)
 
     parser = argparse.ArgumentParser(sys.argv[0])
+    parser.add_argument('--config', type=str, default=None,
+                        help='name of the config file, ex: config.ini')
     parser.add_argument('--logLevel', type=int, default=logging.INFO,
                         help='logging threshold. 10=debug, 20=info, 30=warn')
     parser.add_argument('--test', type=bool, default=False,
@@ -118,8 +160,11 @@ def main(argv=None):
                         help='in milliseconds - clock tick rate')
 
     opts = parser.parse_args(argv)
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(custom_except_hook)
     try:
-        runFODO(opts)
+        #runFODO(opts)
+        loop.run_until_complete(runFODO(opts))
     except KeyboardInterrupt:
         print('Exiting Program...')
     
