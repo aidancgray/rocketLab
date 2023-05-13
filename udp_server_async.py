@@ -83,8 +83,10 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.info('~~~~~~starting log~~~~~~')
 
-    localIP = '172.16.1.125'
-    localPort = 1025
+    #localIP = '172.16.1.34'
+    #local{prt = 1025
+    localIP = '192.168.1.100'
+    localPort = 60000
     srcIP = '172.16.1.112'
     srcPort = 1025
     
