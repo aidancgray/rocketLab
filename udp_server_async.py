@@ -22,20 +22,22 @@ class AsyncUDPServer:
         self.qXmit = asyncio.Queue()
         self.loop = loop
         self.addr = (hostname, port)
+        self.serverTask = None
 
-    async def startUDP(self):
+    def startUDP(self):
         if signal is not None:
             self.loop.add_signal_handler(signal.SIGINT, self.loop.stop)
         
-        server = self.start_server()
-
+        transport, server = self.start_server()
+        
         try:
             self.loop.run_forever()
         finally:
             server.close()
             self.loop.close()
 
-    def start_server(self):
+    async def start_server(self):
+        print('DEBUG1')
         class AsyncUDPServerProtocol(asyncio.DatagramProtocol):
             def __init__(self, loop, logger, qPacket):
                 self.loop = loop
@@ -67,12 +69,16 @@ class AsyncUDPServer:
             async def enqueue_packet(self, packet):
                 await self.qPacket.put(packet)
 
-        protocol = AsyncUDPServerProtocol(self.loop, self.logger, self.qPacket)
-        t = asyncio.Task(self.loop.create_datagram_endpoint(
-            lambda: protocol, local_addr=self.addr
-            ))
-        transport, server = self.loop.run_until_complete(t)
-        return transport
+        loop = asyncio.get_event_loop()
+        protocol = AsyncUDPServerProtocol(loop, self.logger, self.qPacket)
+        return await loop.create_datagram_endpoint(
+            lambda: protocol, local_addr=self.addr)
+        #transport, server = self.loop.run_until_complete(serverTask)
+        #return transport, server
+
+async def runUDPserverTest(loop):
+    udpServer = AsyncUDPServer(loop, localIP, localPort)
+    await asyncio.gather(udpServer.start_server())
 
 if __name__ == "__main__":
     LOG_FORMAT = '%(asctime)s.%(msecs)03dZ %(name)-10s %(levelno)s \
@@ -82,14 +88,20 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.info('~~~~~~starting log~~~~~~')
 
-    #localIP = '172.16.1.34'
-    #local{prt = 1025
-    localIP = '192.168.1.100'
-    localPort = 60000
-    srcIP = '172.16.1.112'
-    srcPort = 1025
+    localIP = '172.16.1.125'
+    localPort = 1025
+    # localIP = '192.168.1.100'
+    # localPort = 60000
+    # srcIP = '172.16.1.112'
+    # srcPort = 1025
     
     loop = asyncio.get_event_loop()
+    loop.run_until_complete(runUDPserverTest(loop))
 
-    udpServer = AsyncUDPServer(loop, localIP, localPort)
-    asyncio.gather(udpServer.startUDP())
+    try:
+        loop.run_forever()    
+    except KeyboardInterrupt:
+        print('Exiting Program...')
+    finally:
+        loop.close()
+        asyncio.set_event_loop(None)

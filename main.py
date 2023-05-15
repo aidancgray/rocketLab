@@ -41,7 +41,7 @@ DELAY = 2000
 DEFAULT_CONFIG = {
     "SOURCE_IP" : "172.16.1.112",
     "SOURCE_PORT" : 1025,
-    "DESTINATION_IP" : "172.16.1.34",
+    "DESTINATION_IP" : "172.16.1.125",
     "DESTINATION_PORT" : 1025,
     "NETWORK_LAYER" : "udp"}
 
@@ -71,7 +71,7 @@ async def runFODO(loop, opts):
     srcIP = config["SOURCE_IP"]
     srcPort = config["SOURCE_PORT"]
     dstIP = config["DESTINATION_IP"]
-    dstPort = config["DESINATION_PORT"]
+    dstPort = config["DESTINATION_PORT"]
     layer = config["NETWORK_LAYER"] 
 
     try:
@@ -91,15 +91,15 @@ async def runFODO(loop, opts):
                                qXmit=udpServer.qXmit
                                )
     
-    shiftReg = shiftRegister(qXmit=udpServer.qXmit,
-                             inputPin=SHIFTREG_INPUT_PIN,
-                             clockPin=SHIFTREG_CLOCK_PIN,
-                             latchPin=SHIFTREG_LATCH_PIN,
-                             clearPin=SHIFTREG_CLEAR_PIN,
-                             outEnPin=SHIFTREG_OUTEN_PIN,
-                             order=gpio.LSBFIRST,
-                             clockTime=opts.tickRate
-                            )
+    # shiftReg = shiftRegister(qXmit=udpServer.qXmit,
+    #                          inputPin=SHIFTREG_INPUT_PIN,
+    #                          clockPin=SHIFTREG_CLOCK_PIN,
+    #                          latchPin=SHIFTREG_LATCH_PIN,
+    #                          clearPin=SHIFTREG_CLEAR_PIN,
+    #                          outEnPin=SHIFTREG_OUTEN_PIN,
+    #                          order=gpio.LSBFIRST,
+    #                          clockTime=opts.tickRate
+    #                         )
     
     # pktAnalyzer = packetAnalyzer(sourceIP=srcIP,
     #                               sourcePort=srcPort,
@@ -109,8 +109,9 @@ async def runFODO(loop, opts):
     #                               packetHandler=pktHandler
     #                               )
     # pktAnalyzer.start(bpf_filter)
-
-    asyncio.gather(udpServer.startUDP(), pktHandler.start(), shiftReg.start())
+    
+    await asyncio.gather(udpServer.start_server(), pktHandler.start())
+    #await asyncio.gather(udpServer.start_server(), pktHandler.start(), shiftReg.start())
 
 def gpioTest():
     gpio.wiringPiSetupGpio()
@@ -171,11 +172,14 @@ def main(argv=None):
     opts = parser.parse_args(argv)
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(custom_except_hook)
+    loop.run_until_complete(runFODO(loop, opts))
     try:
-        #runFODO(opts)
-        loop.run_until_complete(runFODO(loop, opts))
+        loop.run_forever()
     except KeyboardInterrupt:
         print('Exiting Program...')
+    finally:
+        loop.close()
+        asyncio.set_event_loop(None)
     
 if __name__ == "__main__":
     main()

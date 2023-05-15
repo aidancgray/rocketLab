@@ -9,7 +9,7 @@
 # WiringPi shiftOut function:
 #   shiftOut(dataPin, clockPin, order[LSBFIRST or MSBFIRST], data) 
 #
-# Shift out 123 (b1110110, byte 0-255) to data pin 1, clock pin 2 
+# Shift out 123 (b1111011, byte 0-255) to data pin 1, clock pin 2 
 #   wiringpi.shiftOut(1, 2, 0, 123)
 ###############################################################################
 
@@ -47,9 +47,17 @@ class shiftRegister:
             await asyncio.sleep(0.000001)
 
     async def handleData(self, data):
-        for byte in data:
-            self.logger.debug(f"DATA[{byte}]: {data[0]}")
-
+        for n in range(len(data)):
+            #self.logger.debug(f"DATA[{n}]: {data[0]}")
+            photon = data[n]
+            x = photon[0]
+            y = photon[1]
+            p = photon[2]
+            self.setData(y)
+            await asyncio.sleep(0.000001)
+            self.setData(x)
+            await asyncio.sleep(0.000001)
+            
     def tick(self):
         gpio.digitalWrite(self.clockPin, HIGH)
         gpio.delay(self.clockTime)
