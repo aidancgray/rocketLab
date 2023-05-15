@@ -9,7 +9,6 @@
 
 import logging
 import asyncio
-import sys
 
 try:
     import signal
@@ -24,7 +23,7 @@ class AsyncUDPServer:
         self.loop = loop
         self.addr = (hostname, port)
 
-    def startUDP(self):
+    async def startUDP(self):
         if signal is not None:
             self.loop.add_signal_handler(signal.SIGINT, self.loop.stop)
         
@@ -93,4 +92,4 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
 
     udpServer = AsyncUDPServer(loop, localIP, localPort)
-    udpServer.startUDP()
+    asyncio.gather(udpServer.startUDP())
