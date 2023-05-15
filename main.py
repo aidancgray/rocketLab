@@ -17,6 +17,7 @@ import configparser
 import shlex
 import wiringpi as gpio
 
+from udp_server_async import AsyncUDPServer
 from shift_register import shiftRegister
 from packet_analyzer import packetAnalyzer
 from packet_handler import packetHandler
@@ -48,7 +49,7 @@ def custom_except_hook(loop, context):
     if repr(context['exception']) == 'SystemExit()':
         print('Exiting Program...')
 
-async def runFODO(opts):
+async def runFODO(loop, opts):
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S",
                         format = '%(asctime)s.%(msecs)03dZ ' \
                                 '%(name)-10s %(levelno)s ' \
@@ -66,23 +67,32 @@ async def runFODO(opts):
         config = DEFAULT_CONFIG
     else:
         config = parseConfigFile(opts.config)
-
+    
     srcIP = config["SOURCE_IP"]
     srcPort = config["SOURCE_PORT"]
     dstIP = config["DESTINATION_IP"]
-    dstPort = config["DESINATion_PORT"]
-    layer = config["NETWORK_LAYER"]
+    dstPort = config["DESINATION_PORT"]
+    layer = config["NETWORK_LAYER"] 
+
+    try:
+        dstIP = netifaces.ifaddresses('eth0')[netifaces.AF_INET][0]['addr']
+    except:
+        pass
 
     bpf_filter = f"src host {srcIP} and " \
-        f"src port {srcPort} and " \
-        f"dst host {dstIP} and " \
-        f"dst port {dstPort} and " \
-        f"{layer}"
-    
-    ip_address = netifaces.ifaddresses('eth0')[netifaces.AF_INET][0]['addr']
-    
+                f"src port {srcPort} and " \
+                f"dst host {dstIP} and " \
+                f"dst port {dstPort} and " \
+                f"{layer}"
 
-    shiftReg = shiftRegister(inputPin=SHIFTREG_INPUT_PIN,
+    udpServer = AsyncUDPServer(loop, dstIP, dstPort)
+    
+    pktHandler = packetHandler(qPacket=udpServer.qPacket,
+                               qXmit=udpServer.qXmit
+                               )
+    
+    shiftReg = shiftRegister(qXmit=udpServer.qXmit,
+                             inputPin=SHIFTREG_INPUT_PIN,
                              clockPin=SHIFTREG_CLOCK_PIN,
                              latchPin=SHIFTREG_LATCH_PIN,
                              clearPin=SHIFTREG_CLEAR_PIN,
@@ -91,17 +101,16 @@ async def runFODO(opts):
                              clockTime=opts.tickRate
                             )
     
-    pktHandler = packetHandler(customHandler=shiftReg)
-    
-    pktAnalyzer = packetAnalyzer(sourceIP=srcIP,
-                                  sourcePort=srcPort,
-                                  destinationIP=dstIP,
-                                  destinationPort=dstPort,
-                                  layer=layer,
-                                  packetHandler=pktHandler
-                                  )
+    # pktAnalyzer = packetAnalyzer(sourceIP=srcIP,
+    #                               sourcePort=srcPort,
+    #                               destinationIP=dstIP,
+    #                               destinationPort=dstPort,
+    #                               layer=layer,
+    #                               packetHandler=pktHandler
+    #                               )
+    # pktAnalyzer.start(bpf_filter)
 
-    pktAnalyzer.start(bpf_filter)
+    asyncio.gather(udpServer.startUDP(), pktHandler.start(), shiftReg.start())
 
 def gpioTest():
     gpio.wiringPiSetupGpio()
@@ -164,7 +173,7 @@ def main(argv=None):
     loop.set_exception_handler(custom_except_hook)
     try:
         #runFODO(opts)
-        loop.run_until_complete(runFODO(opts))
+        loop.run_until_complete(runFODO(loop, opts))
     except KeyboardInterrupt:
         print('Exiting Program...')
     

@@ -14,6 +14,7 @@
 ###############################################################################
 
 import logging
+import asyncio
 import wiringpi as gpio
 
 LOW = 0
@@ -22,9 +23,10 @@ INPUT = 0
 OUTPUT = 1
 
 class shiftRegister:
-    def __init__(self, inputPin, clockPin, latchPin, clearPin, 
+    def __init__(self, qXmit, inputPin, clockPin, latchPin, clearPin, 
                  outEnPin, order, clockTime=0):
-        self.logger = logging.getLogger('fodo.shift_register')
+        self.logger = logging.getLogger('fodo')
+        self.qXmit = qXmit
         self.inputPin = inputPin
         self.clockPin = clockPin
         self.latchPin = latchPin
@@ -37,6 +39,17 @@ class shiftRegister:
         self.setupShiftPins()
         self.clearData()
 
+    async def start(self):
+        while True:
+            if not self.qXmit.empty():
+                data = await self.qXmit.get()
+                retData = await self.handleData(data)
+            await asyncio.sleep(0.000001)
+
+    async def handleData(self, data):
+        for byte in data:
+            self.logger.debug(f"DATA[{byte}]: {data[0]}")
+
     def tick(self):
         gpio.digitalWrite(self.clockPin, HIGH)
         gpio.delay(self.clockTime)
@@ -47,10 +60,10 @@ class shiftRegister:
         gpio.pinMode(pin, mode)
 
     def setupShiftPins(self):
-        gpio.pinMode(self.inputPin, OUTPUT)
-        gpio.pinMode(self.clockPin, OUTPUT)
-        gpio.pinMode(self.clearPin, OUTPUT)
-        gpio.pinMode(self.outEnPin, OUTPUT)
+        self.setPinMode(self.inputPin, OUTPUT)
+        self.setPinMode(self.clockPin, OUTPUT)
+        self.setPinMode(self.clearPin, OUTPUT)
+        self.setPinMode(self.outEnPin, OUTPUT)
 
     def setData(self, data):
         gpio.shiftOut(self.inputPin, self.clockPin, self.order, data)
