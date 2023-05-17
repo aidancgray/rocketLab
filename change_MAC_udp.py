@@ -78,6 +78,8 @@ class changeMAC_UDPServer:
                         os.system(f'{changeMACaddr} {cmdList[2]}')
                     elif cmdList[1] == 'reboot':
                         os.system(f'sudo reboot now')
+                    elif cmdList[1] == 'git-pull':
+                        os.system(f'git pull')
 
         loop = asyncio.get_event_loop()
         protocol = AsyncUDPServerProtocol(loop, self.logger, self.pwd)
