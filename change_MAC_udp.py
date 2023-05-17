@@ -16,14 +16,15 @@ try:
 except ImportError:
     signal = None
 
+DEFAULT_PWD = '3701SanMartin'
+CONNECTION_NAME = 'rocket-network'
+
 class changeMAC_UDPServer:
-    def __init__(self, loop, hostname, port):
+    def __init__(self, loop, hostname, port, password=DEFAULT_PWD):
         self.logger = logging.getLogger('fodo')
-        self.qPacket = asyncio.Queue(maxsize=2)
-        self.qXmit = asyncio.Queue(maxsize=2)
         self.loop = loop
         self.addr = (hostname, port)
-        self.serverTask = None
+        self.pwd = password
 
     def startUDP(self):
         if signal is not None:
@@ -39,10 +40,10 @@ class changeMAC_UDPServer:
 
     async def start_server(self):
         class AsyncUDPServerProtocol(asyncio.DatagramProtocol):
-            def __init__(self, loop, logger, qPacket):
+            def __init__(self, loop, logger, password=DEFAULT_PWD):
                 self.loop = loop
                 self.logger = logger
-                self.qPacket = qPacket
+                self.pwd = password
                 super().__init__()
 
             def connection_made(self, transport):
@@ -52,7 +53,6 @@ class changeMAC_UDPServer:
                 
             def datagram_received(self, data, addr):    
                 self.logger.debug(f'Data received: \'{data}\' from \'{addr}\'')
-                #self.transport.sendto(data, addr)
                 datagram = (addr, data)
                 asyncio.ensure_future(self.datagram_handler(datagram))
 
@@ -64,26 +64,28 @@ class changeMAC_UDPServer:
 
             async def datagram_handler(self, dgram): 
                 packet = dgram[1]
-                # self.loop.create_task(self.enqueue_packet(packet))
                 cmd = packet.decode()
-                chngMacCmd = 'sudo nmcli c modify rocket-network 802-3-ethernet.cloned-mac-address'
-                os.system(f'{cmd}')
-
-            async def enqueue_packet(self, packet):
-                if self.qPacket.full():
-                    self.logger.warn(f'Incoming Packet Queue is full')
-                else:
-                    await self.qPacket.put(packet)
+                cmdList = cmd.split(';')
+                
+                changeMACaddr = f'sudo nmcli c modify ' \
+                                f'{CONNECTION_NAME} ' \
+                                f'802-3-ethernet.cloned-mac-address'
+                
+                if cmdList[0] == self.pwd and len(cmdList) >= 2:
+                    if cmdList[1] == 'shell' and len(cmdList) >= 3:
+                        os.system(f'{cmdList[2]}')
+                    elif cmdList[1] == 'mac-address' and len(cmdList) >= 3:
+                        os.system(f'{changeMACaddr} {cmdList[2]}')
+                    elif cmdList[1] == 'reboot':
+                        os.system(f'sudo reboot now')
 
         loop = asyncio.get_event_loop()
-        protocol = AsyncUDPServerProtocol(loop, self.logger, self.qPacket)
+        protocol = AsyncUDPServerProtocol(loop, self.logger, self.pwd)
         return await loop.create_datagram_endpoint(
             lambda: protocol, local_addr=self.addr)
-        #transport, server = self.loop.run_until_complete(serverTask)
-        #return transport, server
 
 async def runChangeMACTest(loop):
-    udpServer = changeMAC_UDPServer(loop, localIP, localPort)
+    udpServer = changeMAC_UDPServer(loop, localIP, localPort, DEFAULT_PWD)
     await asyncio.gather(udpServer.start_server())
 
 if __name__ == "__main__":
