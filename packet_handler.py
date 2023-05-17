@@ -57,8 +57,8 @@ class packetHandler:
                     self.logger.debug(f'PHOTON[{pNum}]: {photon}')
                     x = (photon[1]<<3) + (photon[0]>>5)
                     y = (photon[3]<<3) + (photon[2]>>5)
-                    p = photon[4]
-                    photonQueue.append[(x, y, p)]
+                    # p = photon[4]
+                    photonQueue.append((x, y))
                     pNum+=1
                     
                 await self.enqueue_xmit(photonQueue)
@@ -66,7 +66,10 @@ class packetHandler:
             pass
 
     async def enqueue_xmit(self, data):
-        await self.qXmit.put(data)
+        if self.qXmit.full():
+            self.logger.warn(f'Transmit Data Queue is FULL')
+        else:
+            await self.qXmit.put(data)
 
 async def runPktHandlerTest(loop):
     pktHandler = packetHandler(qPacket=asyncio.Queue(),

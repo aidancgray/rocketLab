@@ -22,9 +22,10 @@ from shift_register import shiftRegister
 from packet_analyzer import packetAnalyzer
 from packet_handler import packetHandler
 
-#      IDX |  0    1    2    3    4    5    6    7    8    9   10   11   12
-#     PHYS |  6    7    8   15   16   29   30   31   32   33   35   37   39
-PIN_LIST = [470, 471, 472, 506, 505, 423, 422, 425, 424, 507, 477, 421, 462]
+#       IDX |  0    1    2    3    4    5    6    7    8    9   10   11   12
+#      PHYS |  6    7    8   15   16   29   30   31   32   33   35   37   39
+#PIN_LIST = [470, 471, 472, 506, 505, 423, 422, 425, 424, 507, 477, 421, 462]
+PIN_LIST  = [  1,   2,   3,   5,   6,  13,  14,  15,  16,  17,  18,  19,  20]
 
 SHIFTREG_INPUT_PIN = PIN_LIST[0]
 SHIFTREG_CLOCK_PIN = PIN_LIST[1]
@@ -114,7 +115,7 @@ async def runFODO(loop, opts):
     #await asyncio.gather(udpServer.start_server(), pktHandler.start(), shiftReg.start())
 
 def gpioTest():
-    gpio.wiringPiSetupGpio()
+    gpio.wiringPiSetup()
     print("---GPIO Test---")
     
     print(f'#ofPINS...{str(len(PIN_LIST))}')

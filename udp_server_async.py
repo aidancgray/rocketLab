@@ -18,8 +18,8 @@ except ImportError:
 class AsyncUDPServer:
     def __init__(self, loop, hostname, port):
         self.logger = logging.getLogger('fodo')
-        self.qPacket = asyncio.Queue()
-        self.qXmit = asyncio.Queue()
+        self.qPacket = asyncio.Queue(maxsize=32)
+        self.qXmit = asyncio.Queue(maxsize=32)
         self.loop = loop
         self.addr = (hostname, port)
         self.serverTask = None
@@ -67,7 +67,10 @@ class AsyncUDPServer:
                 self.loop.create_task(self.enqueue_packet(packet))
 
             async def enqueue_packet(self, packet):
-                await self.qPacket.put(packet)
+                if self.qPacket.full():
+                    self.logger.warn(f'Incoming Packet Queue is full')
+                else:
+                    await self.qPacket.put(packet)
 
         loop = asyncio.get_event_loop()
         protocol = AsyncUDPServerProtocol(loop, self.logger, self.qPacket)
