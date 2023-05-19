@@ -127,7 +127,7 @@ async def runGPIOTest(loop):
                             snapFullPin=13, 
                             snapEmptyPin=14, 
                             snapReadPin=15,
-                            order=gpio.LSBFIRST,
+                            order=gpio.MSBFIRST,
                             clockTime=0
                             )
     
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S", format = LOG_FORMAT)
     logger = logging.getLogger('fodo')
     logger.setLevel(logging.DEBUG)
-    logger.info('~~~~~~starting log~~~~~~')
+    logger.debug('~~~~~~starting log~~~~~~')
 
     loop = asyncio.get_event_loop()
     try:

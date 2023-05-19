@@ -17,8 +17,9 @@ import configparser
 import shlex
 import wiringpi as gpio
 
+from change_MAC_udp import changeMAC_UDPServer
 from udp_server_async import AsyncUDPServer
-from shift_register import shiftRegister
+from shift_register import GPIO_to_cRIO
 from packet_analyzer import packetAnalyzer
 from packet_handler import packetHandler
 
@@ -58,7 +59,7 @@ async def runFODO(loop, opts):
     
     logger = logging.getLogger('fodo')
     logger.setLevel(opts.logLevel)
-    logger.info('~~~~~~starting log~~~~~~')
+    logger.debug('~~~~~~starting log~~~~~~')
 
     if opts.test:
         gpioTest()
@@ -86,33 +87,29 @@ async def runFODO(loop, opts):
                 f"dst port {dstPort} and " \
                 f"{layer}"
 
+    changeMAC = changeMAC_UDPServer(loop, hostname="0.0.0.0")
+
     udpServer = AsyncUDPServer(loop, dstIP, dstPort)
     
     pktHandler = packetHandler(qPacket=udpServer.qPacket,
-                               qXmit=udpServer.qXmit
-                               )
+                               qXmit=udpServer.qXmit)
     
-    # shiftReg = shiftRegister(qXmit=udpServer.qXmit,
-    #                          inputPin=SHIFTREG_INPUT_PIN,
-    #                          clockPin=SHIFTREG_CLOCK_PIN,
-    #                          latchPin=SHIFTREG_LATCH_PIN,
-    #                          clearPin=SHIFTREG_CLEAR_PIN,
-    #                          outEnPin=SHIFTREG_OUTEN_PIN,
-    #                          order=gpio.LSBFIRST,
-    #                          clockTime=opts.tickRate
-    #                         )
+    shiftReg = GPIO_to_cRIO(qXmit=udpServer.qXmit,
+                            inputPin=SHIFTREG_INPUT_PIN,
+                            clockPin=SHIFTREG_CLOCK_PIN,
+                            latchPin=SHIFTREG_LATCH_PIN,
+                            clearPin=SHIFTREG_CLEAR_PIN,
+                            outEnPin=SHIFTREG_OUTEN_PIN,
+                            snapFullPin=SNAP_FIFO_FULL_PIN, 
+                            snapEmptyPin=SNAP_FIFO_EMPTY_PIN, 
+                            snapReadPin=SNAP_FIFO_READ_PIN,
+                            order=gpio.MSBFIRST,
+                            clockTime=opts.tickRate)
     
-    # pktAnalyzer = packetAnalyzer(sourceIP=srcIP,
-    #                               sourcePort=srcPort,
-    #                               destinationIP=dstIP,
-    #                               destinationPort=dstPort,
-    #                               layer=layer,
-    #                               packetHandler=pktHandler
-    #                               )
-    # pktAnalyzer.start(bpf_filter)
-    
-    await asyncio.gather(udpServer.start_server(), pktHandler.start())
-    #await asyncio.gather(udpServer.start_server(), pktHandler.start(), shiftReg.start())
+    await asyncio.gather(changeMAC.start_server(), 
+                         udpServer.start_server(), 
+                         pktHandler.start(),
+                         shiftReg.start())
 
 def gpioTest():
     gpio.wiringPiSetup()

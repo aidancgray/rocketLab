@@ -89,7 +89,7 @@ if __name__ == "__main__":
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S", format = LOG_FORMAT)
     logger = logging.getLogger('fodo')
     logger.setLevel(logging.DEBUG)
-    logger.info('~~~~~~starting log~~~~~~')
+    logger.debug('~~~~~~starting log~~~~~~')
 
     localIP = '172.16.1.125'
     localPort = 1025
