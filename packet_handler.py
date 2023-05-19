@@ -10,6 +10,8 @@
 import logging
 import asyncio
 
+SLEEP_TIME = 0.000001
+
 class packetHandler:
     def __init__(self, qPacket, qXmit):
         self.logger = logging.getLogger('fodo')
@@ -22,7 +24,8 @@ class packetHandler:
             if not self.qPacket.empty():
                 pkt = await self.qPacket.get()
                 retData = await self.handlePacket(pkt)
-                await self.enqueue_xmit(retData)
+                if retData != None:
+                    await self.enqueue_xmit(retData)
             await asyncio.sleep(0.000001)
 
     async def handlePacket(self, pkt):
@@ -38,30 +41,46 @@ class packetHandler:
             # Make sure the data is aligned properly and is newest packet            
             if (pkt[4] == 0) and pkt[5] == 0 and (pktCount > self.packetCount):
                 numPhotons = (pkt[1]<<8) + pkt[0]
-                numPhotonBytes = numPhotons * 242
-                
+                numPhotonBytes = numPhotons * 6
                 self.logger.debug(f'NUM_PHOTONS: {numPhotons} ({numPhotonBytes}B)')
-                
-                # Split the packet into photons (X, Y, P) each consisting of 2 bytes
-                pktData = pkt[6:]
-                photonList = [pktData[i:i+6] for i in range(0, numPhotonBytes, 6)]
-                
-                if len(photonList) <= 10:
-                    self.logger.debug(f'PHOTON_LIST: {photonList}')
-                else:
-                    self.logger.debug(f'PHOTON_LIST: {photonList[:10]} ... ')
 
-                photonQueue = []
-                pNum = 0
-                for photon in photonList:
-                    self.logger.debug(f'PHOTON[{pNum}]: {photon}')
-                    x = (photon[1]<<3) + (photon[0]>>5)
-                    y = (photon[3]<<3) + (photon[2]>>5)
-                    # p = photon[4]
-                    photonQueue.append((x, y))
-                    pNum+=1
+                if numPhotons > 0:
+                    # Split the packet into photons (X, Y, P) each consisting of 2 bytes
+                    pktData = pkt[6:]
+                    photonList = [pktData[i:i+6] for i in range(0, numPhotonBytes, 6)]
+                
+                    if len(photonList) <= 10:
+                        self.logger.debug(f'PHOTON_LIST: {photonList}')
+                    else:
+                        self.logger.debug(f'PHOTON_LIST: {photonList[:10]} ... ')
+
+                    photonQueue = []
+                    pNum = 0
+                    for photon in photonList:
+                        self.logger.debug(f'PHOTON[{pNum}]: {photon}')
+                        
+                        # self.logger.debug(f'xA = {photon[1]} << 3')
+                        # self.logger.debug(f'xB = {photon[0]} >> 5')
+                        xA = photon[1]<<3
+                        xB = photon[0]>>5
+                        yA = photon[3]<<3
+                        yB = photon[2]>>5
+
+                        x = (xA + xB) & 255
+                        y = (yA + yB) & 255
+                        # p = photon[4]
+                        
+                        # self.logger.debug(f'x={xA}+{xB}')
+                        # self.logger.debug(f'y={yA}+{yB}')
+                        
+                        photonQueue.append((x, y))
+                        pNum+=1            
                     
-                await self.enqueue_xmit(photonQueue)
+                    return photonQueue
+                else:
+                    self.logger.debug(f'NO PHOTONS')
+                    await asyncio.sleep(SLEEP_TIME)
+                    return None
         except:
             pass
 

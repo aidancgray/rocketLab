@@ -40,16 +40,28 @@ SNAP_FIFO_READ_PIN = PIN_LIST[7]
 
 DELAY = 2000
 
-DEFAULT_CONFIG = {
+IDG_CONFIG = {
     "SOURCE_IP" : "172.16.1.112",
     "SOURCE_PORT" : 1025,
     "DESTINATION_IP" : "172.16.1.125",
-    "DESTINATION_PORT" : 1025,
+    "DESTINATION_PORT" : 60000,
     "NETWORK_LAYER" : "udp"}
 
+ROCKET_CONFIG = {
+    "SOURCE_IP" : "192.168.1.10",
+    "SOURCE_PORT" : 62510,
+    "DESTINATION_IP" : "192.168.1.100",
+    "DESTINATION_PORT" : 60000,
+    "NETWORK_LAYER" : "udp"}
+
+DEFAULT_CONFIG = IDG_CONFIG
+
 def custom_except_hook(loop, context):
+    logger = logging.getLogger('fodo')
+    logger.setLevel(logging.WARN)
+    
     if repr(context['exception']) == 'SystemExit()':
-        print('Exiting Program...')
+        logger.debug('Exiting Program...')
 
 async def runFODO(loop, opts):
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S",
@@ -60,16 +72,13 @@ async def runFODO(loop, opts):
     logger = logging.getLogger('fodo')
     logger.setLevel(opts.logLevel)
     logger.debug('~~~~~~starting log~~~~~~')
-
-    if opts.test:
-        gpioTest()
-        sys.exit()
     
-    if opts.config == None:
-        config = DEFAULT_CONFIG
-    else:
-        config = parseConfigFile(opts.config)
+    # if opts.config == None:
+    #     config = DEFAULT_CONFIG
+    # else:
+    #     config = parseConfigFile(opts.config)
     
+    config = DEFAULT_CONFIG
     srcIP = config["SOURCE_IP"]
     srcPort = config["SOURCE_PORT"]
     dstIP = config["DESTINATION_IP"]
@@ -81,13 +90,16 @@ async def runFODO(loop, opts):
     except:
         pass
 
-    bpf_filter = f"src host {srcIP} and " \
-                f"src port {srcPort} and " \
-                f"dst host {dstIP} and " \
-                f"dst port {dstPort} and " \
-                f"{layer}"
+    # bpf_filter = f"src host {srcIP} and " \
+    #             f"src port {srcPort} and " \
+    #             f"dst host {dstIP} and " \
+    #             f"dst port {dstPort} and " \
+    #             f"{layer}"
 
-    changeMAC = changeMAC_UDPServer(loop, hostname="0.0.0.0")
+    changeMAC = changeMAC_UDPServer(loop, 
+                                    hostname="0.0.0.0", 
+                                    port=61000, 
+                                    password="3701SanMartin")
 
     udpServer = AsyncUDPServer(loop, dstIP, dstPort)
     
@@ -111,32 +123,6 @@ async def runFODO(loop, opts):
                          pktHandler.start(),
                          shiftReg.start())
 
-def gpioTest():
-    gpio.wiringPiSetup()
-    print("---GPIO Test---")
-    
-    print(f'#ofPINS...{str(len(PIN_LIST))}')
-    for pin in PIN_LIST:
-        gpio.pinMode(pin, gpio.OUTPUT)
-        gpio.digitalWrite(pin, gpio.LOW)
-    gpio.delay(DELAY)
-    print("PINS LOW")
-    for pin in PIN_LIST:
-        readVal = gpio.digitalRead(pin)
-        print(f'{str(pin)}...{str(readVal)}')
-    
-    for pin in PIN_LIST:
-        gpio.digitalWrite(pin, gpio.HIGH)
-    gpio.delay(DELAY)
-    print("PINS HIGH")
-    for pin in PIN_LIST:
-        readVal = gpio.digitalRead(pin)
-        print(f'{str(pin)}...{str(readVal)}')
-
-    for pin in PIN_LIST:
-        gpio.digitalWrite(pin, gpio.LOW)
-    print("---DONE---")
-
 def parseConfigFile(filename):
     config = configparser.ConfigParser()
     config.read(filename)
@@ -156,12 +142,10 @@ def main(argv=None):
         argv = shlex.split(argv)
 
     parser = argparse.ArgumentParser(sys.argv[0])
-    parser.add_argument('--config', type=str, default=None,
-                        help='name of the config file, ex: config.ini')
+    # parser.add_argument('--config', type=str, default=None,
+    #                     help='name of the config file, ex: config.ini')
     parser.add_argument('--logLevel', type=int, default=logging.INFO,
                         help='logging threshold. 10=debug, 20=info, 30=warn')
-    parser.add_argument('--test', type=bool, default=False,
-                        help='run in test mode')
     parser.add_argument('--delay', type=int, default=2000,
                         help='in milliseconds - used for pausing')
     parser.add_argument('--tickRate', type=int, default=0,

@@ -49,6 +49,7 @@ class GPIO_to_cRIO:
         while True:
             if not self.qXmit.empty():
                 data = await self.qXmit.get()
+                self.logger.debug(f'{data}')
                 retData = self.handleData(data)
             await asyncio.sleep(SLEEP_TIME)
 

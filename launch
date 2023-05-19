@@ -1,6 +1,7 @@
 #!/bin/bash
 
-now=`date +"%Y-%m-%dT%H.%M.%S"`
+#now=`date +"%Y-%m-%dT%H.%M.%S"`
 
-sudo touch /home/idg/logs/$now.log
-sudo python3.6 packet_analyzer.py
+#sudo touch /home/idg/logs/$now.log
+
+sudo nohup python3.6 /home/idg/projects/rocketLab/main.py --logLevel=30 --delay=2000 --tickRate=0 >/dev/null 2>&1 &

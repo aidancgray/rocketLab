@@ -37,7 +37,6 @@ class AsyncUDPServer:
             self.loop.close()
 
     async def start_server(self):
-        print('DEBUG1')
         class AsyncUDPServerProtocol(asyncio.DatagramProtocol):
             def __init__(self, loop, logger, qPacket):
                 self.loop = loop
@@ -64,6 +63,11 @@ class AsyncUDPServer:
 
             async def datagram_handler(self, dgram): 
                 packet = dgram[1]
+                try:
+                    pktDec = int.from_bytes(packet, "little")
+                except:
+                    self.logger.debug(f'cannot convert to int')    
+                self.logger.debug(f'{packet} type={type(packet)} int={pktDec}')
                 self.loop.create_task(self.enqueue_packet(packet))
 
             async def enqueue_packet(self, packet):
@@ -92,9 +96,8 @@ if __name__ == "__main__":
     logger.debug('~~~~~~starting log~~~~~~')
 
     localIP = '172.16.1.125'
-    localPort = 1025
     # localIP = '192.168.1.100'
-    # localPort = 60000
+    localPort = 60000
     # srcIP = '172.16.1.112'
     # srcPort = 1025
     
