@@ -43,6 +43,10 @@ class GPIO_to_cRIO:
 
         gpio.wiringPiSetup()
         self.setupShiftPins()
+        self.writeData(self.snapEmptyPin, HIGH)
+        self.writeData(self.snapFullPin, LOW)
+        self.writeData(self.outEnPin, HIGH)
+        self.writeData(self.latchPin, LOW)
         self.clearData()
 
     async def start(self):
@@ -50,10 +54,10 @@ class GPIO_to_cRIO:
             if not self.qXmit.empty():
                 data = await self.qXmit.get()
                 self.logger.debug(f'{data}')
-                retData = self.handleData(data)
+                await self.handleData(data)
             await asyncio.sleep(SLEEP_TIME)
 
-    def handleData(self, data):
+    async def handleData(self, data):
         for n in range(len(data)):
             #self.logger.debug(f"DATA[{n}]: {data[0]}")
             photon = data[n]
@@ -65,24 +69,17 @@ class GPIO_to_cRIO:
             self.latchData()
             
             self.writeData(self.outEnPin, LOW)
-            self.writeData(self.snapFullPin, LOW)
+            self.writeData(self.snapFullPin, HIGH)
             self.writeData(self.snapEmptyPin, LOW)
             
             # Wait for the data to be read
-            #while gpio.digitalRead(self.snapReadPin, HIGH):
-            #    await asyncio.sleep(SLEEP_TIME)
+            while gpio.digitalRead(self.snapReadPin) == LOW:
+               await asyncio.sleep(SLEEP_TIME)
 
             self.writeData(self.snapEmptyPin, HIGH)
-            self.writeData(self.snapFullPin, HIGH)
+            self.writeData(self.snapFullPin, LOW)
             self.writeData(self.outEnPin, HIGH)
             
-            
-    def tick(self):
-        gpio.digitalWrite(self.clockPin, HIGH)
-        gpio.delay(self.clockTime)
-        gpio.digitalWrite(self.clockPin, LOW)
-        gpio.delay(self.clockTime)
-
     def setPinMode(self, pin, mode):
         gpio.pinMode(pin, mode)
 
@@ -98,20 +95,18 @@ class GPIO_to_cRIO:
 
     def writeData(self, pin, state):
         gpio.digitalWrite(pin, state)
-        #gpio.delay(self.clockTime)
 
     def shiftDataOut(self, data):
-        # self.writeData(self.clockPin, HIGH)
-        gpio.shiftOut(self.inputPin, self.clockPin, self.order, data)
-        #gpio.delay(self.clockTime)
+        self.writeData(self.clockPin, LOW)
+        try:
+            gpio.shiftOut(self.inputPin, self.clockPin, self.order, data)
+        except:
+            self.logger.error(f'gpio.shiftOut() failed')
 
     def latchData(self):
         gpio.digitalWrite(self.latchPin, LOW)
-        gpio.delay(self.clockTime)
         gpio.digitalWrite(self.latchPin, HIGH)
-        gpio.delay(self.clockTime)
         gpio.digitalWrite(self.latchPin, LOW)
-        gpio.delay(self.clockTime)
 
     def clearData(self):
         self.writeData(self.clearPin, HIGH)
@@ -135,7 +130,7 @@ async def runGPIOTest(loop):
     testData = [(0b00000000, 0b00000001),
                 (0b00001010, 0b00001011),
                 (0b00010100, 0b00010101)]
-    # testData = [(0b00000000, 0b00000001)]
+    #testData = [(0b01010001, 0b10001011)]
     
     await gpioCtrl.qXmit.put(testData)
     await asyncio.gather(gpioCtrl.start())
