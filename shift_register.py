@@ -22,6 +22,7 @@ HIGH = 1
 INPUT = 0
 OUTPUT = 1
 SLEEP_TIME = 0.000001
+uSLEEP_TIME = 1
 
 class GPIO_to_cRIO:
     def __init__(self, qXmit, 
@@ -43,10 +44,7 @@ class GPIO_to_cRIO:
 
         gpio.wiringPiSetup()
         self.setupShiftPins()
-        self.writeData(self.snapEmptyPin, HIGH)
-        self.writeData(self.snapFullPin, LOW)
-        self.writeData(self.outEnPin, HIGH)
-        self.writeData(self.latchPin, LOW)
+        self.setDefaultStates()
         self.clearData()
 
     async def start(self):
@@ -54,12 +52,11 @@ class GPIO_to_cRIO:
             if not self.qXmit.empty():
                 data = await self.qXmit.get()
                 self.logger.debug(f'{data}')
-                await self.handleData(data)
+                self.handleData(data)
             await asyncio.sleep(SLEEP_TIME)
 
-    async def handleData(self, data):
+    def handleData(self, data):
         for n in range(len(data)):
-            #self.logger.debug(f"DATA[{n}]: {data[0]}")
             photon = data[n]
             x = photon[0]
             y = photon[1]
@@ -69,15 +66,16 @@ class GPIO_to_cRIO:
             self.latchData()
             
             self.writeData(self.outEnPin, LOW)
-            self.writeData(self.snapFullPin, HIGH)
-            self.writeData(self.snapEmptyPin, LOW)
-            
-            # Wait for the data to be read
-            while gpio.digitalRead(self.snapReadPin) == LOW:
-               await asyncio.sleep(SLEEP_TIME)
+            #self.writeData(self.snapFullPin, HIGH)
+            #self.writeData(self.snapEmptyPin, LOW)
 
-            self.writeData(self.snapEmptyPin, HIGH)
-            self.writeData(self.snapFullPin, LOW)
+            # Clock the SNAP_FIFO_READ
+            self.writeData(self.snapReadPin, HIGH)
+            gpio.delayMicroseconds(uSLEEP_TIME)
+            self.writeData(self.snapReadPin, LOW)
+
+            #self.writeData(self.snapEmptyPin, HIGH)
+            #self.writeData(self.snapFullPin, LOW)
             self.writeData(self.outEnPin, HIGH)
             
     def setPinMode(self, pin, mode):
@@ -91,7 +89,7 @@ class GPIO_to_cRIO:
         self.setPinMode(self.outEnPin, OUTPUT)
         self.setPinMode(self.snapFullPin, OUTPUT)
         self.setPinMode(self.snapEmptyPin, OUTPUT)
-        self.setPinMode(self.snapReadPin, INPUT)
+        self.setPinMode(self.snapReadPin, OUTPUT)
 
     def writeData(self, pin, state):
         gpio.digitalWrite(pin, state)
@@ -113,6 +111,16 @@ class GPIO_to_cRIO:
         self.writeData(self.clearPin, LOW)
         self.writeData(self.clearPin, HIGH)
 
+    def setDefaultStates(self):
+        self.writeData(self.inputPin, LOW)
+        self.writeData(self.clockPin, LOW)
+        self.writeData(self.latchPin, LOW)
+        self.writeData(self.clearPin, HIGH)
+        self.writeData(self.outEnPin, HIGH)
+        self.writeData(self.snapFullPin, LOW)
+        self.writeData(self.snapEmptyPin, HIGH)
+        self.writeData(self.snapReadPin, LOW)
+
 async def runGPIOTest(loop):
     gpioCtrl = GPIO_to_cRIO(qXmit=asyncio.Queue(maxsize=32),
                             inputPin=1,
@@ -130,7 +138,6 @@ async def runGPIOTest(loop):
     testData = [(0b00000000, 0b00000001),
                 (0b00001010, 0b00001011),
                 (0b00010100, 0b00010101)]
-    #testData = [(0b01010001, 0b10001011)]
     
     await gpioCtrl.qXmit.put(testData)
     await asyncio.gather(gpioCtrl.start())

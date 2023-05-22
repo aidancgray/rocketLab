@@ -54,8 +54,6 @@ ROCKET_CONFIG = {
     "DESTINATION_PORT" : 60000,
     "NETWORK_LAYER" : "udp"}
 
-DEFAULT_CONFIG = IDG_CONFIG
-
 def custom_except_hook(loop, context):
     logger = logging.getLogger('fodo')
     logger.setLevel(logging.WARN)
@@ -73,12 +71,11 @@ async def runFODO(loop, opts):
     logger.setLevel(opts.logLevel)
     logger.debug('~~~~~~starting log~~~~~~')
     
-    # if opts.config == None:
-    #     config = DEFAULT_CONFIG
-    # else:
-    #     config = parseConfigFile(opts.config)
+    if opts.rocketConfig:
+        config = ROCKET_CONFIG
+    else:
+        config = IDG_CONFIG
     
-    config = DEFAULT_CONFIG
     srcIP = config["SOURCE_IP"]
     srcPort = config["SOURCE_PORT"]
     dstIP = config["DESTINATION_IP"]
@@ -90,12 +87,14 @@ async def runFODO(loop, opts):
     except:
         pass
 
+    # For scapy.sniff(). Unused in newest configuration (05/22/2023)
     # bpf_filter = f"src host {srcIP} and " \
     #             f"src port {srcPort} and " \
     #             f"dst host {dstIP} and " \
     #             f"dst port {dstPort} and " \
     #             f"{layer}"
 
+    # Asynchronous Server to allow the user to change/spoof the MAC Address
     changeMAC = changeMAC_UDPServer(loop, 
                                     hostname="0.0.0.0", 
                                     port=61000, 
@@ -142,8 +141,8 @@ def main(argv=None):
         argv = shlex.split(argv)
 
     parser = argparse.ArgumentParser(sys.argv[0])
-    # parser.add_argument('--config', type=str, default=None,
-    #                     help='name of the config file, ex: config.ini')
+    parser.add_argument('--rocketConfig', type=bool, default=False,
+                        help='network configuration: True = Rocket | False = IDG Network')
     parser.add_argument('--logLevel', type=int, default=logging.INFO,
                         help='logging threshold. 10=debug, 20=info, 30=warn')
     parser.add_argument('--delay', type=int, default=2000,
