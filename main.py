@@ -20,7 +20,7 @@ import wiringpi as gpio
 from change_MAC_udp import changeMAC_UDPServer
 from udp_server_async import AsyncUDPServer
 from shift_register import GPIO_to_cRIO
-from packet_analyzer import packetAnalyzer
+#from packet_analyzer import packetAnalyzer
 from packet_handler import packetHandler
 
 #       IDX |  0    1    2    3    4    5    6    7    8    9   10   11   12
