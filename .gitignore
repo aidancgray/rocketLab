@@ -128,8 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-*.out
-
 # My stuff
+*.out
 scratch/
-launch_*
+launch_bcast
+launch_parll
