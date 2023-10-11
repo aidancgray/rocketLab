@@ -4,4 +4,5 @@
 
 #sudo touch /home/idg/logs/$now.log
 
-sudo nohup python3.6 /home/idg/projects/rocketLab/main.py --logLevel=30 --delay=2000 --tickRate=0 >/dev/null 2>&1 &
+#sudo nohup python3.6 /home/idg/projects/rocketLab/main.py --logLevel=30 --delay=2000 --tickRate=0 >/dev/null 2>&1 &
+sudo nohup python3.6 /home/idg/projects/rocketLab/main.py --logLevel=30 --delay=2000 --tickRate=0 >/home/idg/logs/$now.log 2>&1 &
