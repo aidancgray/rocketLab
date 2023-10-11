@@ -1,0 +1,8 @@
+#!/bin/bash
+
+now=`date +"%Y-%m-%dT%H.%M.%S"`
+
+sudo touch /home/idg/logs/$now.log
+
+#sudo nohup python3.6 /home/idg/projects/rocketLab/main.py --logLevel=30 >/dev/null 2>&1 &
+sudo nohup python3.6 /home/idg/projects/rocketLab/main.py --logLevel=30 >/home/idg/logs/$now.log 2>&1 &

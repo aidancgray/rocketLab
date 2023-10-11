@@ -130,4 +130,6 @@ dmypy.json
 
 *.out
 
+# My stuff
 scratch/
+launch_*
