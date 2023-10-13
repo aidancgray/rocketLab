@@ -99,7 +99,7 @@ class AsyncUDPServer:
         # return transport, server
 
 async def runUDPserverTest(loop):
-    udpServer = AsyncUDPServer(loop, localIP, localPort)
+    udpServer = AsyncUDPServer(loop, localIP, localPort, srcIP)
     await asyncio.gather(udpServer.start_server())
 
 if __name__ == "__main__":
@@ -111,11 +111,8 @@ if __name__ == "__main__":
     logger.debug('~~~~~~starting log~~~~~~')
 
     localIP = ''
-    # localIP = '172.16.1.126'
-    # localIP = '192.168.1.200'
     localPort = 60000
-    # srcIP = '172.16.1.112'
-    # srcPort = 1025
+    srcIP = '172.16.1.112'
     
     loop = asyncio.get_event_loop()
     loop.run_until_complete(runUDPserverTest(loop))
