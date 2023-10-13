@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-# packet_handler.py
-# 04/11/2023
+# packet_handler_parll.py
+# 10/13/2023
 # Aidan Gray
 # aidan.gray@idg.jhu.edu
 #
@@ -14,7 +14,7 @@ SLEEP_TIME = 0.000001
 
 class packetHandler:
     def __init__(self, qPacket, qXmit):
-        self.logger = logging.getLogger('fodo')
+        self.logger = logging.getLogger('parll')
         self.qPacket = qPacket
         self.qXmit = qXmit
         self.packetCount = 0
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     LOG_FORMAT = '%(asctime)s.%(msecs)03dZ %(name)-10s %(levelno)s \
         %(filename)s:%(lineno)d %(message)s'
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S", format = LOG_FORMAT)
-    logger = logging.getLogger('fodo')
+    logger = logging.getLogger('parll')
     logger.setLevel(logging.DEBUG)
     logger.debug('~~~~~~starting log~~~~~~')
 
