@@ -17,7 +17,6 @@ import argparse
 import shlex
 import wiringpi as gpio
 
-# from change_MAC_udp import changeMAC_UDPServer
 from udp_server_async_parll import AsyncUDPServer
 from shift_register import GPIO_to_cRIO
 from packet_handler_parll import packetHandler
@@ -62,21 +61,17 @@ async def runFODO(loop, opts):
         localIP = '192.168.1.200'
 
     if localIP[:3] == '192':
-        srcIP = "192.168.1.10"
+        srcIP = "192.168.1.10"  # Zero-Order Detector
+        # srcIP = "192.168.1.300"  # GRAY-MAC on rocket-network
     elif localIP[:3] == '172':
-        srcIP = "172.16.1.112"  # GRAY-PC on IDG_LAB
+        # srcIP = "172.16.1.112"  # GRAY-PC on IDG_LAB
+        srcIP = "172.16.0.171"  # GRAY-MAC on IDG_LAB
 
     bcastPort = 60000
 
     logger.info(f'VIM-PARLL_IP_ADDRESS={localIP}')
     logger.info(f'SRC_IP_ADDRESS={srcIP}')
     logger.info(f'BROADCAST_PORT={bcastPort}')
-
-    # Asynchronous Server to allow the user to change/spoof the MAC Address
-    # changeMAC = changeMAC_UDPServer(loop, 
-    #                                 hostname="0.0.0.0", 
-    #                                 port=61000, 
-    #                                 password="3701SanMartin")
     
     udpServer = AsyncUDPServer(loop, '', bcastPort, srcIP)
     
@@ -94,34 +89,11 @@ async def runFODO(loop, opts):
                             snapReadPin=SNAP_FIFO_READ_PIN,
                             order=gpio.MSBFIRST,
                             clockTime=opts.tickRate)
-
-    # ipAnnTask = loop.create_task(ipAnnounce)
     
-    await asyncio.gather(# changeMAC.start_server(), 
-                         udpServer.start_server(), 
+    await asyncio.gather(udpServer.start_server(), 
                          pktHandler.start(),
                          shiftReg.start(),
-                         # ipAnnounce()
                          )
-    
-
-# async def ipAnnounce():
-#     while True:
-#         #os.system("arping -A -c 1 -I eth0 192.168.1.100")
-#         os.system("ping -c 1 192.168.1.10")
-#         await asyncio.sleep(IP_ANN_DELAY)
-    
-# def parseConfigFile(filename):
-#     config = configparser.ConfigParser()
-#     config.read(filename)
-#     filterInfo = {}
-#     filterInfo['SOURCE_IP'] = config['FILTER INFO']['SOURCE IP']
-#     filterInfo['SOURCE_PORT'] = config['FILTER INFO']['SOURCE PORT']
-#     filterInfo['DESTINATION_IP'] = config['FILTER INFO']['DESTINATION IP']
-#     filterInfo['DESTINATION_PORT'] = config['FILTER INFO']['DESTINATION PORT']
-#     filterInfo['NETWORK_LAYER'] = config['FILTER INFO']['NETWORK LAYER']
-
-#     return filterInfo
     
 def main(argv=None):
     if argv is None:
@@ -130,8 +102,6 @@ def main(argv=None):
         argv = shlex.split(argv)
 
     parser = argparse.ArgumentParser(sys.argv[0])
-    # parser.add_argument('--rocketConfig', type=bool, default=False,
-    #                     help='network configuration: True = Rocket | False = IDG Network')
     parser.add_argument('--logLevel', type=int, default=logging.INFO,
                         help='logging threshold. 10=debug, 20=info, 30=warn')
     parser.add_argument('--delay', type=int, default=2000,
