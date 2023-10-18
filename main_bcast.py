@@ -20,6 +20,7 @@ from udp_server_async_bcast import AsyncUDPServer
 from packet_handler_bcast import packetHandler
 
 DELAY = 2000
+IP_ANN_DELAY = 5 #seconds
 
 def custom_except_hook(loop, context):
     logger = logging.getLogger('bcast')
@@ -60,9 +61,19 @@ async def runBCAST(loop, opts):
                                bcastIP=bcastIP,
                                bcastPort=bcastPort)
     
+    ipAnnTask = loop.create_task(ipAnnounce)
+
     await asyncio.gather(udpServer.start_server(), 
-                         pktHandler.start(),)
+                         pktHandler.start(),
+                         ipAnnounce(),
+                         )
     
+async def ipAnnounce():
+    while True:
+        #os.system("arping -A -c 1 -I eth0 192.168.1.100")
+        os.system("ping -c 1 192.168.1.10")
+        await asyncio.sleep(IP_ANN_DELAY)
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
