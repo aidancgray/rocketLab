@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # udp_server_async_parll.py
-# 10/13/2023
+# 10/25/2023
 # Aidan Gray
 # aidan.gray@idg.jhu.edu
 #
-# UDP Server
+# UDP Server for VIM-PARLL for JHU's Rocket Lab.
 ###############################################################################
 
 from socket import *
