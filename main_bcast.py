@@ -21,7 +21,7 @@ from udp_server_async_bcast import AsyncUDPServer
 from packet_handler_bcast import packetHandler
 
 DELAY = 2000
-IP_ANN_DELAY = 5 #seconds
+# IP_ANN_DELAY = 5 #seconds
 
 def custom_except_hook(loop, context):
     logger = logging.getLogger('bcast')
@@ -64,25 +64,23 @@ async def runBCAST(loop, opts):
                                bcastIP=bcastIP,
                                bcastPort=bcastPort)
     
-    #ipAnnTask = loop.create_task(ipAnnounce(localIP, srcIP))
+    # ipAnnTask = loop.create_task(ipAnnounce(localIP, srcIP))
 
     await asyncio.gather(udpServer.start_server(), 
                          pktHandler.start(),
                          #ipAnnTask,
                          )
     
-async def ipAnnounce(localIP, srcIP):
-    while True:
-        subprocess.run(["arping", "-U", 
-                        "-c", "1",
-                        "-I", "eth0",
-                        "-s", localIP, 
-                        srcIP], 
-                        stdout=subprocess.PIPE
-                        )
-        #subprocess.run(["ping", "-c", "1", "172.16.0.171"], stdout=subprocess.PIPE)
-        #subprocess.run(["ping", "-c", "1", srcIP])
-        await asyncio.sleep(IP_ANN_DELAY)
+# async def ipAnnounce(localIP, srcIP):
+#     while True:
+#         subprocess.run(["arping", "-U", 
+#                         "-c", "1",
+#                         "-I", "eth0",
+#                         "-s", localIP, 
+#                         srcIP], 
+#                         stdout=subprocess.PIPE
+#                         )
+#         await asyncio.sleep(IP_ANN_DELAY)
 
 def main(argv=None):
     if argv is None:
