@@ -37,6 +37,7 @@ SNAP_FIFO_EMPTY_PIN = PIN_LIST[6]
 SNAP_FIFO_READ_PIN = PIN_LIST[7]
 
 DELAY = 2000
+IP_ANN_DELAY = 10 #seconds
 
 def custom_except_hook(loop, context):
     logger = logging.getLogger('parll')
@@ -90,11 +91,20 @@ async def runFODO(loop, opts):
                             order=gpio.MSBFIRST,
                             clockTime=opts.tickRate)
     
+    #ipAnnTask = loop.create_task(ipAnnounce)
+
     await asyncio.gather(udpServer.start_server(), 
                          pktHandler.start(),
                          shiftReg.start(),
+                         #ipAnnounce(),
                          )
-    
+
+async def ipAnnounce():
+    while True:
+        #os.system("arping -A -c 1 -I eth0 192.168.1.100")
+        os.system("ping -c 1 192.168.1.10")
+        await asyncio.sleep(IP_ANN_DELAY)
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
