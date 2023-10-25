@@ -1,27 +1,24 @@
 #!/usr/bin/python3.6
 # main_bcast.py
-# 10/03/2023
+# 10/25/2023
 # Aidan Gray
 # aidan.gray@idg.jhu.edu
 #
-# Main script for running the data broadcast
+# Main script for running the Detector Data Broadcast (VIM-BCAST) 
 # for JHU's Rocket Lab.
 ###############################################################################
 
 import sys
-import os
 import asyncio
 import netifaces
 import logging
 import argparse
 import shlex
-import subprocess
 
 from udp_server_async_bcast import AsyncUDPServer
 from packet_handler_bcast import packetHandler
 
 DELAY = 2000
-# IP_ANN_DELAY = 5 #seconds
 
 def custom_except_hook(loop, context):
     logger = logging.getLogger('bcast')
@@ -47,10 +44,8 @@ async def runBCAST(loop, opts):
     
     if localIP[:3] == '192':
         bcastIP = "192.168.1.255"
-        srcIP = '192.168.1.10'
     elif localIP[:3] == '172':
         bcastIP = "172.16.15.255"
-        srcIP = '172.16.0.171'
     
     bcastPort = 60000
 
@@ -63,24 +58,10 @@ async def runBCAST(loop, opts):
                                qXmit=udpServer.qXmit,
                                bcastIP=bcastIP,
                                bcastPort=bcastPort)
-    
-    # ipAnnTask = loop.create_task(ipAnnounce(localIP, srcIP))
 
     await asyncio.gather(udpServer.start_server(), 
                          pktHandler.start(),
-                         #ipAnnTask,
                          )
-    
-# async def ipAnnounce(localIP, srcIP):
-#     while True:
-#         subprocess.run(["arping", "-U", 
-#                         "-c", "1",
-#                         "-I", "eth0",
-#                         "-s", localIP, 
-#                         srcIP], 
-#                         stdout=subprocess.PIPE
-#                         )
-#         await asyncio.sleep(IP_ANN_DELAY)
 
 def main(argv=None):
     if argv is None:
