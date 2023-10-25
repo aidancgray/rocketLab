@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # packet_handler_bcast.py
-# 10/03/2023
+# 10/25/2023
 # Aidan Gray
 # aidan.gray@idg.jhu.edu
 #
-# Packet Handler - Broadcast class for JHU's Rocket Lab.
+# Packet Handler for VIM-BCAST for JHU's Rocket Lab.
 ###############################################################################
 
 import logging
@@ -14,8 +14,8 @@ import struct
 import subprocess
 import time
 
-SLEEP_TIME = 0.000001
-ARPING_TIME = 5
+SLEEP_TIME = 0.000001  # for short sleeps at the end of loops
+ARPING_TIME = 5  # if time b/w packets is > this, then send ping
 
 class packetHandler:
     def __init__(self, qPacket, qXmit, bcastIP, bcastPort):
@@ -26,11 +26,12 @@ class packetHandler:
         self.bcastIP = bcastIP
         self.bcastPort = bcastPort
         
+        # on rocket network (192) or IDG-LAB (172)?
         if self.bcastIP[:3] == '192':
             self.srcIP = '192.168.1.10'
             self.localIP = '192.168.1.100'
-        elif self.bcastIP[:3] == '172':
-            self.srcIP = '172.16.0.171'
+        elif self.bcastIP[:3] == '172':  
+            self.srcIP = '172.16.0.171'  # GRAY-MAC
             self.localIP = '172.16.1.125'
 
     async def start(self):
@@ -45,6 +46,7 @@ class packetHandler:
             else:
                 packet_timer_check = time.perf_counter() - packet_timer
                 if packet_timer_check > ARPING_TIME:  # check the packet timer
+                    # announce local IP to zero-order detector
                     subprocess.run(["arping", "-U", 
                             "-c", "1",
                             "-I", "eth0",
@@ -52,18 +54,18 @@ class packetHandler:
                             self.srcIP], 
                             stdout=subprocess.PIPE)
                     await asyncio.sleep(2)
-
-            await asyncio.sleep(SLEEP_TIME)
+            await asyncio.sleep(SLEEP_TIME) # very small wait time necessary
 
     async def handlePacket(self, pkt):
         try:
             rcv_time, addr, data = pkt
-            
+            #  encode data if it isn't already
             if isinstance(data, bytes):
                 udp_payload = data
             else:
                 udp_payload = data.encode('utf-8')
-                
+            
+            # build a new header with the source IP address
             udp_header = struct.pack(">HHHH", 
                                      addr[1], 
                                      self.bcastPort, 
