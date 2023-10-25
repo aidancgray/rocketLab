@@ -11,8 +11,11 @@ import logging
 import asyncio
 import socket
 import struct
+import subprocess
+import time
 
 SLEEP_TIME = 0.000001
+ARPING_TIME = 5
 
 class packetHandler:
     def __init__(self, qPacket, qXmit, bcastIP, bcastPort):
@@ -22,15 +25,35 @@ class packetHandler:
         self.packetCount = 0
         self.bcastIP = bcastIP
         self.bcastPort = bcastPort
+        
+        if self.bcastIP[:3] == '192':
+            self.srcIP = '192.168.1.10'
+            self.localIP = '192.168.1.100'
+        elif self.bcastIP[:3] == '172':
+            self.srcIP = '172.16.0.171'
+            self.localIP = '172.16.1.125'
 
     async def start(self):
+        packet_timer = time.perf_counter()  # start a packet timer
         while True:
             if not self.qPacket.empty():
                 pkt = await self.qPacket.get()
                 retData = await self.handlePacket(pkt)
                 if retData != None:
                     await self.enqueue_xmit(retData)
-            await asyncio.sleep(0.000001)
+                packet_timer = time.perf_counter()  # reset packet timer
+            else:
+                packet_timer_check = time.perf_counter() - packet_timer
+                if packet_timer_check > ARPING_TIME:  # check the packet timer
+                    subprocess.run(["arping", "-U", 
+                            "-c", "1",
+                            "-I", "eth0",
+                            "-s", self.localIP, 
+                            self.srcIP], 
+                            stdout=subprocess.PIPE)
+                    await asyncio.sleep(2)
+
+            await asyncio.sleep(SLEEP_TIME)
 
     async def handlePacket(self, pkt):
         try:

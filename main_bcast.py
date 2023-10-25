@@ -15,6 +15,7 @@ import netifaces
 import logging
 import argparse
 import shlex
+import subprocess
 
 from udp_server_async_bcast import AsyncUDPServer
 from packet_handler_bcast import packetHandler
@@ -46,8 +47,10 @@ async def runBCAST(loop, opts):
     
     if localIP[:3] == '192':
         bcastIP = "192.168.1.255"
+        srcIP = '192.168.1.10'
     elif localIP[:3] == '172':
         bcastIP = "172.16.15.255"
+        srcIP = '172.16.0.171'
     
     bcastPort = 60000
 
@@ -61,17 +64,24 @@ async def runBCAST(loop, opts):
                                bcastIP=bcastIP,
                                bcastPort=bcastPort)
     
-    ipAnnTask = loop.create_task(ipAnnounce)
+    #ipAnnTask = loop.create_task(ipAnnounce(localIP, srcIP))
 
     await asyncio.gather(udpServer.start_server(), 
                          pktHandler.start(),
-                         ipAnnounce(),
+                         #ipAnnTask,
                          )
     
-async def ipAnnounce():
+async def ipAnnounce(localIP, srcIP):
     while True:
-        #os.system("arping -A -c 1 -I eth0 192.168.1.100")
-        os.system("ping -c 1 192.168.1.10")
+        subprocess.run(["arping", "-U", 
+                        "-c", "1",
+                        "-I", "eth0",
+                        "-s", localIP, 
+                        srcIP], 
+                        stdout=subprocess.PIPE
+                        )
+        #subprocess.run(["ping", "-c", "1", "172.16.0.171"], stdout=subprocess.PIPE)
+        #subprocess.run(["ping", "-c", "1", srcIP])
         await asyncio.sleep(IP_ANN_DELAY)
 
 def main(argv=None):
