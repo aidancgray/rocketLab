@@ -1,16 +1,16 @@
 #!/usr/bin/python3
 # packet_handler_parll.py
-# 10/13/2023
+# 10/25/2023
 # Aidan Gray
 # aidan.gray@idg.jhu.edu
 #
-# Packet Handler class for JHU's Rocket Lab.
+# Packet Handler for VIM-PARLL for JHU's Rocket Lab.
 ###############################################################################
 
 import logging
 import asyncio
 
-SLEEP_TIME = 0.000001
+SLEEP_TIME = 0.000001  # for short sleeps at the end of loops
 
 class packetHandler:
     def __init__(self, qPacket, qXmit):
@@ -26,7 +26,7 @@ class packetHandler:
                 retData = await self.handlePacket(pkt)
                 if retData != None:
                     await self.enqueue_xmit(retData)
-            await asyncio.sleep(0.000001)
+            await asyncio.sleep(SLEEP_TIME) # very small wait time necessary
 
     async def handlePacket(self, pkt):
         try:
