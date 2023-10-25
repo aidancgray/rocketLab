@@ -1,15 +1,14 @@
 #!/usr/bin/python3.6
 # main_parll.py
-# 10/13/2023
+# 10/25/2023
 # Aidan Gray
 # aidan.gray@idg.jhu.edu
 #
-# Main script for running the First Order Data Out (FODO) 
+# Main script for running the First Order Data - Parallel Out (VIM-PARLL) 
 # for JHU's Rocket Lab.
 ###############################################################################
 
 import sys
-import os
 import asyncio
 import netifaces
 import logging
@@ -37,7 +36,6 @@ SNAP_FIFO_EMPTY_PIN = PIN_LIST[6]
 SNAP_FIFO_READ_PIN = PIN_LIST[7]
 
 DELAY = 2000
-IP_ANN_DELAY = 10 #seconds
 
 def custom_except_hook(loop, context):
     logger = logging.getLogger('parll')
@@ -63,9 +61,7 @@ async def runFODO(loop, opts):
 
     if localIP[:3] == '192':
         srcIP = "192.168.1.10"  # Zero-Order Detector
-        # srcIP = "192.168.1.300"  # GRAY-MAC on rocket-network
     elif localIP[:3] == '172':
-        # srcIP = "172.16.1.112"  # GRAY-PC on IDG_LAB
         srcIP = "172.16.0.171"  # GRAY-MAC on IDG_LAB
 
     bcastPort = 60000
@@ -90,20 +86,11 @@ async def runFODO(loop, opts):
                             snapReadPin=SNAP_FIFO_READ_PIN,
                             order=gpio.MSBFIRST,
                             clockTime=opts.tickRate)
-    
-    #ipAnnTask = loop.create_task(ipAnnounce)
 
     await asyncio.gather(udpServer.start_server(), 
                          pktHandler.start(),
                          shiftReg.start(),
-                         #ipAnnounce(),
                          )
-
-async def ipAnnounce():
-    while True:
-        #os.system("arping -A -c 1 -I eth0 192.168.1.100")
-        os.system("ping -c 1 192.168.1.10")
-        await asyncio.sleep(IP_ANN_DELAY)
 
 def main(argv=None):
     if argv is None:
