@@ -17,6 +17,18 @@ import logging
 import asyncio
 import wiringpi as gpio
 
+PIN_LIST  = [  1,   2,   3,   5,   6,  13,  14,  15,  16,  17,  18,  19,  20]
+
+SHIFTREG_INPUT_PIN = PIN_LIST[0]
+SHIFTREG_CLOCK_PIN = PIN_LIST[1]
+SHIFTREG_LATCH_PIN = PIN_LIST[2]
+SHIFTREG_CLEAR_PIN = PIN_LIST[3]
+SHIFTREG_OUTEN_PIN = PIN_LIST[4]
+
+SNAP_FIFO_FULL_PIN = PIN_LIST[5]
+SNAP_FIFO_EMPTY_PIN = PIN_LIST[6]
+SNAP_FIFO_READ_PIN = PIN_LIST[7]
+
 LOW = 0
 HIGH = 1
 INPUT = 0
@@ -29,7 +41,7 @@ class GPIO_to_cRIO:
                  inputPin, clockPin, latchPin, clearPin, outEnPin, 
                  snapFullPin, snapEmptyPin, snapReadPin,
                  order, clockTime=0):
-        self.logger = logging.getLogger('fodo')
+        self.logger = logging.getLogger('parll')
         self.qXmit = qXmit
         self.inputPin = inputPin
         self.clockPin = clockPin
@@ -122,31 +134,34 @@ class GPIO_to_cRIO:
         self.writeData(self.snapReadPin, LOW)
 
 async def runGPIOTest(loop):
-    gpioCtrl = GPIO_to_cRIO(qXmit=asyncio.Queue(maxsize=32),
-                            inputPin=1,
-                            clockPin=2,
-                            latchPin=3,
-                            clearPin=5,
-                            outEnPin=6,
-                            snapFullPin=13, 
-                            snapEmptyPin=14, 
-                            snapReadPin=15,
+    shiftReg = GPIO_to_cRIO(qXmit=asyncio.Queue(maxsize=32),
+                            inputPin=SHIFTREG_INPUT_PIN,
+                            clockPin=SHIFTREG_CLOCK_PIN,
+                            latchPin=SHIFTREG_LATCH_PIN,
+                            clearPin=SHIFTREG_CLEAR_PIN,
+                            outEnPin=SHIFTREG_OUTEN_PIN,
+                            snapFullPin=SNAP_FIFO_FULL_PIN, 
+                            snapEmptyPin=SNAP_FIFO_EMPTY_PIN, 
+                            snapReadPin=SNAP_FIFO_READ_PIN,
                             order=gpio.MSBFIRST,
-                            clockTime=0
-                            )
+                            clockTime=0)
     
-    testData = [(0b00000000, 0b00000001),
-                (0b00001010, 0b00001011),
-                (0b00010100, 0b00010101)]
+    testData = [(0b00000000, 0b00000000),
+                (0b00000000, 0b00000001),
+                (0b00000001, 0b00000000),
+                (0b00000001, 0b00000001),
+                ]
     
-    await gpioCtrl.qXmit.put(testData)
-    await asyncio.gather(gpioCtrl.start())
+    shiftReg.handleData(testData)
+    await asyncio.sleep(1)
+    #await shiftReg.qXmit.put(testData)
+    #await asyncio.gather(shiftReg.start())
 
 if __name__ == "__main__":
     LOG_FORMAT = '%(asctime)s.%(msecs)03dZ %(name)-10s %(levelno)s \
         %(filename)s:%(lineno)d %(message)s'
     logging.basicConfig(datefmt = "%Y-%m-%d %H:%M:%S", format = LOG_FORMAT)
-    logger = logging.getLogger('fodo')
+    logger = logging.getLogger('parll')
     logger.setLevel(logging.DEBUG)
     logger.debug('~~~~~~starting log~~~~~~')
 
