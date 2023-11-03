@@ -20,7 +20,7 @@ class AsyncUDPServer:
     def __init__(self, loop, hostname, port, source_ip_address):
         self.logger = logging.getLogger('parll')
         self.qPacket = asyncio.Queue(maxsize=32)
-        self.qXmit = asyncio.Queue(maxsize=32)
+        self.qFIFO = asyncio.Queue(maxsize=32)
         self.loop = loop
         self.addr = (hostname, port)
         self.srcIP = source_ip_address
