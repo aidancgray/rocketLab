@@ -13,10 +13,10 @@ import asyncio
 SLEEP_TIME = 0.000001  # for short sleeps at the end of loops
 
 class packetHandler:
-    def __init__(self, qPacket, qXmit):
+    def __init__(self, qPacket, qFIFO):
         self.logger = logging.getLogger('parll')
         self.qPacket = qPacket
-        self.qXmit = qXmit
+        self.qFIFO = qFIFO
         self.packetCount = 0
 
     async def start(self):
@@ -25,7 +25,8 @@ class packetHandler:
                 pkt = await self.qPacket.get()
                 retData = await self.handlePacket(pkt)
                 if retData != None:
-                    await self.enqueue_xmit(retData)
+                    for photon in retData:
+                        await self.enqueue_FIFO(photon)
             await asyncio.sleep(SLEEP_TIME) # very small wait time necessary
 
     async def handlePacket(self, pkt):
@@ -84,15 +85,15 @@ class packetHandler:
         except:
             pass
 
-    async def enqueue_xmit(self, data):
-        if self.qXmit.full():
+    async def enqueue_FIFO(self, data):
+        if self.qFIFO.full():
             self.logger.warn(f'Transmit Data Queue is FULL')
         else:
-            await self.qXmit.put(data)
+            await self.qFIFO.put(data)
 
 async def runPktHandlerTest(loop):
     pktHandler = packetHandler(qPacket=asyncio.Queue(),
-                               qXmit=asyncio.Queue()
+                               qFIFO=asyncio.Queue()
                                )
     await asyncio.gather(pktHandler.start())
 

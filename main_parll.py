@@ -73,9 +73,9 @@ async def runFODO(loop, opts):
     udpServer = AsyncUDPServer(loop, '', bcastPort, srcIP)
     
     pktHandler = packetHandler(qPacket=udpServer.qPacket,
-                               qXmit=udpServer.qXmit)
+                               qFIFO=udpServer.qFIFO)
     
-    shiftReg = GPIO_to_cRIO(qXmit=udpServer.qXmit,
+    shiftReg = GPIO_to_cRIO(qFIFO=udpServer.qFIFO,
                             inputPin=SHIFTREG_INPUT_PIN,
                             clockPin=SHIFTREG_CLOCK_PIN,
                             latchPin=SHIFTREG_LATCH_PIN,
