@@ -10,6 +10,7 @@
 from socket import *
 import logging
 import asyncio
+import subprocess
 
 try:
     import signal
@@ -48,6 +49,9 @@ class AsyncUDPServer:
                 super().__init__()
 
             def connection_made(self, transport):
+                # Ping to measure boot time
+                # subprocess.run(["ping", "-c", "1", self.srcIP], 
+                #                stdout=subprocess.PIPE)
                 self.transport = transport
                 peername = self.transport.get_extra_info('peername')
                 self.logger.debug(f'Connection made: \'{peername}\'')
